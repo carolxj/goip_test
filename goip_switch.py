@@ -27,8 +27,8 @@ class DevInfo(object):
 
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
-dev = DevInfo("192.168.1.58", "80", "root", "root123")
-# dev = DevInfo("192.168.1.60", "80", "root", "root")
+# dev = DevInfo("192.168.1.58", "80", "root", "root123")
+dev = DevInfo("192.168.1.60", "80", "root", "root")
 # dev = DevInfo("192.168.1.54", "80", "root", "root")
 
 
