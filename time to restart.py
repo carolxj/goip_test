@@ -9,7 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.support import expected_conditions
 import re
 import json
-
+import io
 if False == os.path.exists("log"):
     print("log file don't exist.create")
     os.mkdir("log")
