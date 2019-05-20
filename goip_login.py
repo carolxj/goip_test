@@ -55,6 +55,9 @@ def md5value(s):
     print('password:', password.hexdigest())
     return password.hexdigest()
 
+passwordmd5 = md5value('root:root123:c0a801340000099b5d7e44ec')
+print('passwordmd5:',passwordmd5)
+
 url = "http://www.ejoinerm.com:53458/login_en.html"
 body = {}
 headers = {'content-type':"application/x-www-form-urlencoded"}
