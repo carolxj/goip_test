@@ -31,6 +31,9 @@ logging.basicConfig(#filename="log/goip_recovery.log", # 指定输出的文件
 logging.info("#######################test start#######################")
 
 
+GOIP_OK = 1
+GOIP_FAIL = 0
+
 class CheckInfo(object):
     def __init__(self, result, count, start_time, use_time):
         self.result = result  # 判断模块是否检测完成，0-未完成，1-完成
@@ -49,9 +52,15 @@ class DevInfo(object):
         self.password = password  # 密码
 
 
+class Httpmsg():
+    headers = ""
+    cookies = ""
+
+
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
-dev = DevInfo("192.168.1.58", "80", "root", "root123")
+dev = DevInfo("43.249.29.213", "55962", "root", "root123")
+httpmsg = Httpmsg()
 
 '''
 def try_fun(func):
@@ -79,128 +88,12 @@ def try_fun(func):
         return decorator
 '''
 
-url = "http://" + dev.ip + "/login_en.html"
-body = {}
-headers = {'content-type':"application/x-www-form-urlencoded"}
-response = requests.post(url, headers = headers)
-# print(response.text)
-cookies_nonce = re.findall('var cookies_nonce = "(.*?)";', response.text)
-print(cookies_nonce[0])
-
 
 def md5value(s):
     password = hashlib.md5()
     password.update(s.encode(encoding='utf-8'))
     print('password:', password.hexdigest())
     return password.hexdigest()
-
-s = "root:" + "root123:" + cookies_nonce[0]
-passwordmd5 = md5value(s)
-
-
-url = "http://" + dev.ip + "/login_en.html"
-encoded_value = "root:" + passwordmd5
-params = {"nonce":"",
-         "encoded" : encoded_value,
-        "loginStatus" : "",
-
-     }
-# http请求头
-cookies = "username=5;" "auth_00bf41=" + cookies_nonce[0]
-header = {
-    "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate",
-    "Accept-Language": "zh-CN,zh;q=0.9",
-    "Cache-Control": "max-age=0",
-    "Connection": "keep-alive",
-    "cookie": cookies,
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
-}
-response = requests.post(url, headers = header, data=params)
-# print(response.text)
-loginStatus = re.findall('id="ID_LoginStatus" name="loginStatus" value="(.*?)"',response.text)
-print(loginStatus[0])
-
-
-# 发送get请求获取post_status页面
-requests_addr = "http://" + dev.ip + "/port_status_en.html"
-header = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate",
-    "Accept-Language": "zh-CN,zh;q=0.9",
-    "Cache-Control": "max-age=0",
-    "Connection": "keep-alive",
-    "cookie": cookies,
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
-}
-response = requests.get(requests_addr, headers = header)
-# print(response.text)
-
-
-
-def goip_command_reptile():
-    requests_addr = "http://" + dev.ip + "/port_status_en.html"
-    requests_result = requests.get(requests_addr, headers = header,timeout=(5, 5))
-    requests_code = requests_result.status_code
-
-    if 200 == requests_code:
-
-        print("code:%d" % requests_result.status_code)
-        #print(requests_result.text)
-
-        port_status = re.findall("strPortStatus = '(.*?)'", requests_result.text)
-        #print(port_status)
-        # findall返回的是list，取list的第一个元素转换成字典
-        port_dict = json.loads(port_status[0])
-        print(port_dict)
-        max_ports = port_dict["count"]
-        print(max_ports)
-
-        # 读取at命令返回的内容，并判断响应是否正常
-        modem_status = {}
-        check_ng = 0
-        for i in range(max_ports):
-            modem_status[i] = port_dict["data"][i][3]
-#            print(modem_status[i])
-            # 判断模块是否都返回，只要有一个不正常则置标志位
-            if (("" != modem_status[i])
-            and ("ati\\r\\nQuectel\\r\\nEC25\\r\\nRevision: EC25AFAR05A04M4G\\r\\nOK" != modem_status[i])
-            and ("AT No Response" != modem_status[i])):
-                check_ng = 1
-#                logging.info("modem %d ng,result:%s" % (i + 1, modem_status[i]))
-
-        if 0 == check_ng:
-             print(modem_status)
-
-             check.use_time = time.time() - check.start_time
-             print("test: %d ,use time:%s" % (check.count, check.use_time))
-             check.count += 1
-
-             check.start_time = time.time()
-
-             check.result = 0
-             check.time_out = 0  # 超时清零
-
-        else:
-            print("check_result ng count: %d" % check.time_out)
-            check.result = 1
-            check.time_out += 1  # 超时加1
-
-            print(modem_status)
-
-            check.use_time = time.time() - check.start_time
-            logging.info("test: %d ,use time:%s" % (check.count, check.use_time))
-            check.count += 1
-
-            check.start_time = time.time()
-
-    else:
-         assert requests_code == 200  # 状态码不是200，也会报错并充实
-         logging.info("code:%d" % requests_code)
-
-    return requests_result
 
 
 def send_AT_command():
@@ -209,7 +102,7 @@ def send_AT_command():
     # 最大化浏览器
     Browser.maximize_window()
     # 打开页面
-    url = "http://" + dev.ip + "/login_en.html"
+    url = "http://" + dev.ip + ":" +dev.port + "/login_en.html"
     Browser.get(url)
 
     # 用户名的定位
@@ -269,18 +162,126 @@ def send_AT_command():
 
     logging.info("send_AT_command ok")
     check.result = 1
+    return GOIP_OK
 
+def check_AT_result():
+    # 发送get请求获取goip_command页面
+    requests_addr = "http://" + dev.ip + ":" + dev.port + "/goip_command_en.html"
+    response = requests.get(requests_addr, headers=httpmsg.headers)
+    print(response.text)
+
+    if 200 == response.status_code:
+        print("check ok")
+        ATCmdResp = re.findall("strCmdResp = '(.*?)'", response.text)
+        print(ATCmdResp)
+        AT_dict = json.loads(ATCmdResp[1])
+        print(AT_dict)
+        max_ports = AT_dict["count"]
+        print(max_ports)
+        i = 0
+        for i in range(max_ports):
+            ATCmdResp[i] = AT_dict["data"][i][4]
+            print(ATCmdResp[i])
+
+
+
+def login():
+    url = "http://" + dev.ip + ":" + dev.port + "/login_en.html"
+    httpmsg.headers = {'content-type': "application/x-www-form-urlencoded"}
+    response = requests.get(url, headers=httpmsg.headers)
+    # print(response.text)
+    cookies_nonce = re.findall('var cookies_nonce = "(.*?)";', response.text)
+    print(cookies_nonce[0])
+
+    s = "root:" + "root123:" + cookies_nonce[0]
+    passwordmd5 = md5value(s)
+
+    encoded_value = "root:" + passwordmd5
+    params = {"nonce": "",
+             "encoded" : encoded_value,
+            "loginStatus" : "",
+         }
+
+    # http请求头
+    httpmsg.cookies = "username=5;" "auth_00a277=" + cookies_nonce[0]
+    httpmsg.headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Cache-Control": "max-age=0",
+        "Connection": "keep-alive",
+        "cookie": httpmsg.cookies,
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
+    }
+    response = requests.post(url, headers=httpmsg.headers, data=params)
+    # print(response.text)
+    loginStatus = re.findall('id="ID_LoginStatus" name="loginStatus" value="(.*?)"',response.text)
+    print(loginStatus[0])
+
+    if loginStatus[0] == '0':
+        return GOIP_OK
+    else:
+        GOIP_FAIL
+
+
+def port_status():
+    # 发送get请求获取post_status页面
+    print(httpmsg.headers)
+    requests_addr = "http://" + dev.ip + ":" + dev.port + "/port_status_en.html"
+    response = requests.get(requests_addr, headers=httpmsg.headers)
+    # print(response.text)
+    requests_code = response.status_code
+
+    if 200 == requests_code:
+        print("code:%d" % response.status_code)
+        # print(response.text)
+
+        port_status = re.findall("strPortStatus = '(.*?)'", response.text)
+        print(port_status)
+        # findall返回的是list，取list的第一个元素转换成字典
+        port_dict = json.loads(port_status[0])
+        print(port_dict)
+        max_ports = port_dict["count"]
+        print(max_ports)
+
+        # 读取at命令返回的内容，并判断响应是否正常
+        modem_status = {}
+        check_ng = 0
+        i = 0
+        for i in range(max_ports):
+            modem_status[i] = port_dict["data"][i][3]
+#            print( modem_status[i])
+            # 判断模块是否都返回，只要有一个不正常则置标志位
+            if ("Yes" != modem_status[i]):
+                check_ng = 1
+#                logging.info("modem %d ng,result:%s" % (i + 1, modem_status[i]))
+
+        if 0 == check_ng:
+             print("module check ok")
+             return GOIP_OK
+        else:
+            print("check_result ng count: %d" % check.time_out)
+            return GOIP_FAIL
+    else:
+         return GOIP_FAIL
+
+if login() == GOIP_OK:
+    print("login success")
+else:
+    print("login failed")
+    exit()
 
 while True:
 
-    if  check.time_out >= 20:  # 超过20次都没有回复，退出
-        logging.info("time out stop")
-        exit()
+    if port_status() == GOIP_OK:
+        print("login success")
 
-    if 0 == check.result:
-       send_AT_command()
+        if send_AT_command() == GOIP_OK:
+            check_AT_result()
+
     else:
-        goip_command_reptile()
+        exit()
 
     time.sleep(2)
 
