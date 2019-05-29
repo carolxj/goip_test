@@ -51,9 +51,9 @@ class DevInfo(object):
 
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
-dev = DevInfo("192.168.1.60", "80", "root", "root123")
+dev = DevInfo("192.168.1.58", "80", "root", "root123")
 
-
+'''
 def try_fun(func):
     if callable(func):
         @functools.wraps(func)
@@ -77,7 +77,7 @@ def try_fun(func):
                 return response
             return wrapper
         return decorator
-
+'''
 
 url = "http://" + dev.ip + "/login_en.html"
 body = {}
@@ -106,7 +106,7 @@ params = {"nonce":"",
 
      }
 # http请求头
-cookies = "username=5;" "auth_00a277=" + cookies_nonce[0]
+cookies = "username=5;" "auth_00bf41=" + cookies_nonce[0]
 header = {
     "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate",
@@ -124,7 +124,7 @@ print(loginStatus[0])
 
 
 # 发送get请求获取post_status页面
-url = "http://" + dev.ip + "/port_status_en.html"
+requests_addr = "http://" + dev.ip + "/port_status_en.html"
 header = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate",
@@ -135,49 +135,47 @@ header = {
     "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
 }
-response = requests.get(url, headers = header)
+response = requests.get(requests_addr, headers = header)
 # print(response.text)
 
+
+
 def goip_command_reptile():
-    requests_result = requests.get(url, headers = header, timeout=(5, 5))
+    requests_addr = "http://" + dev.ip + "/port_status_en.html"
+    requests_result = requests.get(requests_addr, headers = header,timeout=(5, 5))
     requests_code = requests_result.status_code
 
     if 200 == requests_code:
 
         print("code:%d" % requests_result.status_code)
-        # print(requests_result.text)
+        #print(requests_result.text)
 
         port_status = re.findall("strPortStatus = '(.*?)'", requests_result.text)
-        # print(port_status)
-        # list转成字典
+        #print(port_status)
+        # findall返回的是list，取list的第一个元素转换成字典
         port_dict = json.loads(port_status[0])
-        print(port_status)
+        print(port_dict)
         max_ports = port_dict["count"]
         print(max_ports)
 
-        # 获取模块状态
-        module_status = {}
+        # 读取at命令返回的内容，并判断响应是否正常
+        modem_status = {}
         check_ng = 0
         for i in range(max_ports):
-            module_status[i] = port_dict["data"][i][3]
-            print(module_status[i])
-
+            modem_status[i] = port_dict["data"][i][3]
+#            print(modem_status[i])
             # 判断模块是否都返回，只要有一个不正常则置标志位
             if (("" != modem_status[i])
-            and ("ati\\r\\nQuectel_Ltd\\r\\nQuectel_M26\\r\\nRevision: M26FBR03A03-TTS\\r\\nOK" != modem_status[i])
-            and ("ati\\r\\nOK" != modem_status[i])
-            and ("OK\r\nREG?" != modem_status[i])
-            and ("OK\r\nSQ" != modem_status[i])
-            and ("OK" != modem_status[i])
+            and ("ati\\r\\nQuectel\\r\\nEC25\\r\\nRevision: EC25AFAR05A04M4G\\r\\nOK" != modem_status[i])
             and ("AT No Response" != modem_status[i])):
                 check_ng = 1
-                logging.info("modem %d ng,result:%s" % (i + 1, modem_status[i]))
+#                logging.info("modem %d ng,result:%s" % (i + 1, modem_status[i]))
 
         if 0 == check_ng:
-             logging.info(modem_status)
+             print(modem_status)
 
              check.use_time = time.time() - check.start_time
-             logging.info("test: %d ,use time:%s" % (check.count, check.use_time))
+             print("test: %d ,use time:%s" % (check.count, check.use_time))
              check.count += 1
 
              check.start_time = time.time()
@@ -186,11 +184,11 @@ def goip_command_reptile():
              check.time_out = 0  # 超时清零
 
         else:
-            logging.info("check_result ng count: %d" % check.time_out)
+            print("check_result ng count: %d" % check.time_out)
             check.result = 1
             check.time_out += 1  # 超时加1
 
-            logging.info(modem_status)
+            print(modem_status)
 
             check.use_time = time.time() - check.start_time
             logging.info("test: %d ,use time:%s" % (check.count, check.use_time))
@@ -200,9 +198,10 @@ def goip_command_reptile():
 
     else:
          assert requests_code == 200  # 状态码不是200，也会报错并充实
-         print("code:%d" % requests_code)
+         logging.info("code:%d" % requests_code)
 
     return requests_result
+
 
 def send_AT_command():
     # 绑定浏览器
@@ -274,18 +273,15 @@ def send_AT_command():
 
 while True:
 
-    if check.time_out >= 80:  # 超过20次都没有回复，退出
+    if  check.time_out >= 20:  # 超过20次都没有回复，退出
         logging.info("time out stop")
         exit()
 
     if 0 == check.result:
-        send_AT_command()
+       send_AT_command()
     else:
         goip_command_reptile()
 
     time.sleep(2)
-
-
-
 
 
