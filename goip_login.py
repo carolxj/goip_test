@@ -59,10 +59,10 @@ class Httpmsg():
 
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
-dev = DevInfo("43.249.29.213", "55962", "root", "root123")
+dev = DevInfo("43.249.29.213", "58054", "root", "root123")
 httpmsg = Httpmsg()
 
-'''
+
 def try_fun(func):
     if callable(func):
         @functools.wraps(func)
@@ -86,7 +86,6 @@ def try_fun(func):
                 return response
             return wrapper
         return decorator
-'''
 
 
 def md5value(s):
@@ -164,25 +163,54 @@ def send_AT_command():
     check.result = 1
     return GOIP_OK
 
+
 def check_AT_result():
     # 发送get请求获取goip_command页面
     requests_addr = "http://" + dev.ip + ":" + dev.port + "/goip_command_en.html"
     response = requests.get(requests_addr, headers=httpmsg.headers)
-    print(response.text)
+#    print(response.text)
+    requests_code = response.status_code
 
-    if 200 == response.status_code:
-        print("check ok")
-        ATCmdResp = re.findall("strCmdResp = '(.*?)'", response.text)
-        print(ATCmdResp)
-        AT_dict = json.loads(ATCmdResp[1])
-        print(AT_dict)
-        max_ports = AT_dict["count"]
-        print(max_ports)
+    if 200 == requests_code:
+        print("code:%d" % response.status_code)
+        # print(response.text)
+
+        at_status = re.findall("strCmdResp = '(.*?)'", response.text)
+#        print(at_status[1])
+        # findall返回的是list，取list的第一个元素转换成字典
+        port_dict = json.loads(at_status[1])
+#        print(port_dict)
+        max_ports = port_dict["count"]
+
+
+        # 读取at命令返回的内容，并判断响应是否正常
+        ATResp = {}
+        check_ng = 0
         i = 0
         for i in range(max_ports):
-            ATCmdResp[i] = AT_dict["data"][i][4]
-            print(ATCmdResp[i])
+            ATResp[i] = port_dict["data"][i][4]
+            print("modem %d ng,result:%s" % (i + 1, ATResp[i]))
+            # 判断模块是否都返回，只要有一个不正常则置标志位
+            if ("ati\\r\\nQuectel\\r\\nEC20F\\r\\nRevision: EC20CEFDGR06A08M4G\\r\\nOK" != ATResp[i]):
+                check_ng = 1
+                print("modem: %d ng,result:%s" % (i + 1, ATResp[i]))
 
+        if 0 == check_ng:
+                print("AT check ok")
+                check.use_time = time.time() - check.start_time
+                print("test: %d ,use time:%s" % (check.count, check.use_time))
+                check.count += 1
+
+                check.start_time = time.time()
+
+                check.result = 0
+                check.time_out = 0  # 超时清零
+                return GOIP_OK
+        else:
+            print("check_result ng count: %d" % check.time_out)
+            return GOIP_FAIL
+    else:
+        return GOIP_FAIL
 
 
 def login():
@@ -222,12 +250,12 @@ def login():
     if loginStatus[0] == '0':
         return GOIP_OK
     else:
-        GOIP_FAIL
+       return GOIP_FAIL
 
 
 def port_status():
     # 发送get请求获取post_status页面
-    print(httpmsg.headers)
+#    print(httpmsg.headers)
     requests_addr = "http://" + dev.ip + ":" + dev.port + "/port_status_en.html"
     response = requests.get(requests_addr, headers=httpmsg.headers)
     # print(response.text)
@@ -238,10 +266,10 @@ def port_status():
         # print(response.text)
 
         port_status = re.findall("strPortStatus = '(.*?)'", response.text)
-        print(port_status)
+#        print(port_status)
         # findall返回的是list，取list的第一个元素转换成字典
         port_dict = json.loads(port_status[0])
-        print(port_dict)
+#        print(port_dict)
         max_ports = port_dict["count"]
         print(max_ports)
 
@@ -279,6 +307,8 @@ while True:
 
         if send_AT_command() == GOIP_OK:
             check_AT_result()
+            print("check atresp ok")
+
 
     else:
         exit()
