@@ -4,7 +4,7 @@ import requests
 import os
 import logging
 import time
-from retrying import retry
+# from retrying import retry
 
 
 class CheckInfo(object):
@@ -27,10 +27,7 @@ class DevInfo(object):
 
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
-# dev = DevInfo("192.168.1.159", "80", "root", "123456")
-# dev = DevInfo("192.168.1.54", "80", "root", "root")
-dev = DevInfo("192.168.1.54", "80", "root", "root")
-
+dev = DevInfo("192.168.1.60", "80", "root", "root")
 
 if False == os.path.exists("log"):
     print("log file don't exist.create")
@@ -46,9 +43,10 @@ logging.info("#######################test start#######################")
 
 
 # 当服务器连不上，request会报错，所以需要加一个重试机制，最大重试3次，3次全部报错，才会报错
-@retry(stop_max_attempt_number=3)
+# @retry(stop_max_attempt_number=3)
 def _modem_check_fun():
 
+#    requests_addr = "http://" + dev.ip + "/ubus?username=" + dev.username + "&password=" + dev.password
     requests_addr = "http://" + dev.ip + ":" + dev.port + "/goip_get_status.html?username=" + dev.username + "&password=" + dev.password + "&period=0"
     requests_result = requests.get(requests_addr, timeout = (5, 5))
     requests_code = requests_result.status_code
@@ -81,6 +79,7 @@ def _modem_check_fun():
             check.result = 0
             check.time_out += 1  # 超时加1
 
+
         logging.info(modem_status)
 
     else:
@@ -101,7 +100,7 @@ def modem_check_fun():
 
 
 # 当服务器连不上，request会报错，所以需要加一个重试机制，最大重试3次，3次全部报错，才会报错
-@retry(stop_max_attempt_number=3)
+# @retry(stop_max_attempt_number=3)
 def _dev_reboot_fun():
 
     requests_addr = "http://" + dev.ip + ":" + dev.port + "/goip_send_cmd.html?username=" + dev.username + "&password=" + dev.password + "&op=reboot"
@@ -147,5 +146,5 @@ while True:
         # reboot dev
         dev_reboot_fun()
 
-    time.sleep(2)
+    time.sleep(20)
 

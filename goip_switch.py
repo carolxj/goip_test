@@ -28,7 +28,7 @@ class DevInfo(object):
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
 # dev = DevInfo("192.168.1.58", "80", "root", "root123")
-dev = DevInfo("192.168.1.60", "80", "root", "root")
+dev = DevInfo("192.168.1.191", "8080", "root", "root")
 # dev = DevInfo("192.168.1.54", "80", "root", "root")
 
 
@@ -48,10 +48,10 @@ class SwitchInfo(object):
 
 
 switch = SwitchInfo(0, 0, time.time(), 0)
-switch.old_iccid = {'01': "first", '02': "first", '03': "first", '04': "first"}
-switch.old_imsi = {'01': "first", '02': "first", '03': "first", '04': "first"}
-switch.new_iccid = {'01': "first", '02': "first", '03': "first", '04': "first"}
-switch.new_imsi = {'01': "first", '02': "first", '03': "first", '04': "first"}
+switch.old_iccid = {'01': "first", '02': "first", '03': "first", '04': "first", "05": "first"}
+switch.old_imsi = {'01': "first", '02': "first", '03': "first", '04': "first", "05": "first"}
+switch.new_iccid = {'01': "first", '02': "first", '03': "first", '04': "first", "05": "first"}
+switch.new_imsi = {'01': "first", '02': "first", '03': "first", '04': "first", "05": "first"}
 
 
 if False == os.path.exists("log"):
@@ -138,7 +138,7 @@ def modem_check_fun():
 
 
 # 当服务器连不上，request会报错，所以需要加一个重试机制
-'''
+
 @try_fun
 def dev_reboot_fun():
 
@@ -162,7 +162,7 @@ def dev_reboot_fun():
         logging.info("code:%d" % requests_code)
 
     return requests_result
-'''
+
 
 # 切卡
 @try_fun
@@ -321,7 +321,7 @@ while True:
     else:
         if 0 == switch.result:
 
-            get_sim_fun(1)
+            get_sim_fun(2)
         else:
             exit()
     time.sleep(2)

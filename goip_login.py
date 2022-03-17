@@ -12,8 +12,8 @@ import sys
 import io
 import urllib.request
 import http.cookiejar
-from selenium import webdriver
-from selenium.webdriver.support import expected_conditions
+#from selenium import webdriver
+#from selenium.webdriver.support import expected_conditions
 
 
 
@@ -36,7 +36,7 @@ GOIP_FAIL = 0
 
 class CheckInfo(object):
     def __init__(self, result, count, start_time, use_time):
-        self.result = result  # 判断模块是否检测完成，0-未完成，1-完成
+#        self.result = result  # 判断模块是否检测完成，0-未完成，1-完成
         self.count = count    # 测试次数
         self.start_time = start_time  # 测试起始时间
         self.use_time = use_time  # 测试用时
@@ -59,7 +59,7 @@ class Httpmsg():
 
 check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
-dev = DevInfo("43.249.29.213", "58054", "root", "root123")
+dev = DevInfo("192.168.1.59", "80",  "root", "root")
 httpmsg = Httpmsg()
 
 
@@ -101,7 +101,7 @@ def send_AT_command():
     # 最大化浏览器
     Browser.maximize_window()
     # 打开页面
-    url = "http://" + dev.ip + ":" +dev.port + "/login_en.html"
+    url = "http://" + dev.ip + "/login_en.html"
     Browser.get(url)
 
     # 用户名的定位
@@ -150,7 +150,7 @@ def send_AT_command():
     time.sleep(0.5)
     # AT命令定位
     Browser.find_element_by_id("ID_goip_at_cmd").clear()
-    Browser.find_element_by_id("ID_goip_at_cmd").send_keys("ati")
+    Browser.find_element_by_id("ID_goip_at_cmd").send_keys("at+qccid")
     time.sleep(0.5)
     # 执行命令
     Browser.find_element_by_xpath('//*[@id="ID_UssdCommandBox_Body"]/table[2]/tbody/tr[2]/td[2]/input[2]').click()
@@ -166,9 +166,9 @@ def send_AT_command():
 
 def check_AT_result():
     # 发送get请求获取goip_command页面
-    requests_addr = "http://" + dev.ip + ":" + dev.port + "/goip_command_en.html"
+    requests_addr = "http://" + dev.ip + "/goip_command_en.html"
     response = requests.get(requests_addr, headers=httpmsg.headers)
-#    print(response.text)
+    print(response.text)
     requests_code = response.status_code
 
     if 200 == requests_code:
@@ -214,14 +214,14 @@ def check_AT_result():
 
 
 def login():
-    url = "http://" + dev.ip + ":" + dev.port + "/login_en.html"
-    httpmsg.headers = {'content-type': "application/x-www-form-urlencoded"}
+    url = "http://" + dev.ip + "/login_en.html"
+    httpmsg.headers = {'content-type': "application/x-www-form-urlencoded"} #application/x-www-form-urlencoded
     response = requests.get(url, headers=httpmsg.headers)
-    # print(response.text)
+    print(response.text)
     cookies_nonce = re.findall('var cookies_nonce = "(.*?)";', response.text)
     print(cookies_nonce[0])
 
-    s = "root:" + "root123:" + cookies_nonce[0]
+    s = "root:" + "root:" + cookies_nonce[0]
     passwordmd5 = md5value(s)
 
     encoded_value = "root:" + passwordmd5
@@ -243,7 +243,7 @@ def login():
                       "(KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
     }
     response = requests.post(url, headers=httpmsg.headers, data=params)
-    # print(response.text)
+#    print(response.text)
     loginStatus = re.findall('id="ID_LoginStatus" name="loginStatus" value="(.*?)"',response.text)
     print(loginStatus[0])
 
@@ -256,14 +256,14 @@ def login():
 def port_status():
     # 发送get请求获取post_status页面
 #    print(httpmsg.headers)
-    requests_addr = "http://" + dev.ip + ":" + dev.port + "/port_status_en.html"
+    requests_addr = "http://" + dev.ip + "/port_status_en.html"
     response = requests.get(requests_addr, headers=httpmsg.headers)
     # print(response.text)
     requests_code = response.status_code
 
     if 200 == requests_code:
         print("code:%d" % response.status_code)
-        # print(response.text)
+        #print(response.text)
 
         port_status = re.findall("strPortStatus = '(.*?)'", response.text)
 #        print(port_status)
@@ -314,5 +314,4 @@ while True:
         exit()
 
     time.sleep(2)
-
 

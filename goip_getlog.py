@@ -43,7 +43,7 @@ check = CheckInfo(0, 0, time.time(), 0)
 check.time_out = 0
 # dev = DevInfo("192.168.0.167", "80", "root", "root")
 # dev = DevInfo("192.168.1.60", "80", "root", "root")
-dev = DevInfo("192.168.1.57", "80", "root", "123456")
+dev = DevInfo("192.168.1.57", "80", "root", "123456a")
 
 
 def try_fun(func):
@@ -108,7 +108,7 @@ def system_filemgmt_reptile():
         filemgmt = re.findall("var strFiles = '(.*?)'", requests_result.text)
         logging.info(filemgmt)
 
-        # 都出来是字符串，使用eval转换成字典
+        # 读出来是字符串，使用eval转换成字典
         filedata = eval(filemgmt[1])
 
         # 如果嵌套文件夹不存在，则创建
